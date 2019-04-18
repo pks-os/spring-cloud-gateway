@@ -1,18 +1,17 @@
 /*
- * Copyright 2013-2017 the original author or authors.
+ * Copyright 2013-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 package org.springframework.cloud.gateway.sample;
@@ -46,8 +45,13 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 public class GatewaySampleApplication {
 
 	public static final String HELLO_FROM_FAKE_ACTUATOR_METRICS_GATEWAY_REQUESTS = "hello from fake /actuator/metrics/gateway.requests";
+
 	@Value("${test.uri:http://httpbin.org:80}")
 	String uri;
+
+	public static void main(String[] args) {
+		SpringApplication.run(GatewaySampleApplication.class, args);
+	}
 
 	@Bean
 	public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
@@ -70,10 +74,8 @@ public class GatewaySampleApplication {
 				)
 				.route("rewrite_request_obj", r -> r.host("*.rewriterequestobj.org")
 					.filters(f -> f.prefixPath("/httpbin")
-							//TODO: add as configuration to modifyRequestBody
-							.setRequestHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
 							.addResponseHeader("X-TestHeader", "rewrite_request")
-							.modifyRequestBody(String.class, Hello.class,
+							.modifyRequestBody(String.class, Hello.class, MediaType.APPLICATION_JSON_VALUE,
 									(exchange, s) -> {
 										return Mono.just(new Hello(s.toUpperCase()));
 									})
@@ -84,7 +86,7 @@ public class GatewaySampleApplication {
 							.addResponseHeader("X-TestHeader", "rewrite_request_upper")
 							.modifyRequestBody(String.class, String.class,
 									(exchange, s) -> {
-										return Mono.just(s.toUpperCase());
+										return Mono.just(s.toUpperCase() + s.toUpperCase());
 									})
 					).uri(uri)
 				)
@@ -140,16 +142,19 @@ public class GatewaySampleApplication {
 	public RouterFunction<ServerResponse> testWhenMetricPathIsNotMeet() {
 		RouterFunction<ServerResponse> route = RouterFunctions.route(
 				RequestPredicates.path("/actuator/metrics/gateway.requests"),
-				request -> ServerResponse.ok().body(BodyInserters.fromObject(HELLO_FROM_FAKE_ACTUATOR_METRICS_GATEWAY_REQUESTS)));
+				request -> ServerResponse.ok().body(BodyInserters
+						.fromObject(HELLO_FROM_FAKE_ACTUATOR_METRICS_GATEWAY_REQUESTS)));
 		return route;
 	}
 
 	static class Hello {
+
 		String message;
 
-		public Hello() { }
+		Hello() {
+		}
 
-		public Hello(String message) {
+		Hello(String message) {
 			this.message = message;
 		}
 
@@ -160,9 +165,7 @@ public class GatewaySampleApplication {
 		public void setMessage(String message) {
 			this.message = message;
 		}
+
 	}
 
-	public static void main(String[] args) {
-		SpringApplication.run(GatewaySampleApplication.class, args);
-	}
 }
